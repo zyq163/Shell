@@ -1,0 +1,374 @@
+基于case分支编写脚本
+
+case分支属于匹配执行的方式，它针对指定的变量预先设置一个可能的取值，判断该变量的实际取值是否与预设的某一个值相匹配，
+如果匹配上了，就执行相应的一组操作，如果没有任何值能够匹配，就执行预先设置的默认操作。case分支的语法结构如下所示：
+case  变量  in
+模式1)
+    命令序列1 ;;
+模式2)
+    命令序列2 ;;
+    .. ..
+*)
+    默认命令序列
+esac
+例:
+[root@server0 ~]# vim /case.sh
+#!/bin/bash
+case $1 in
+start|sta) #输入start或sta
+   /usr/local/nginx/sbin/nginx ;;
+stop|sp) #输入stop或sp
+   /usr/local/nginx/sbin/nginx    -s stop ;;
+restart)
+   /usr/local/nginx/sbin/nginx    -s stop
+   /usr/local/nginx/sbin/nginx ;;
+status)
+   netstat -ntulp | grep -q nginx
+   [ $? -eq 0 ] && echo "服务启动" || echo "服务未启动" ;;
+*)
+echo "start|stop|restart|status" ;;  
+esac
+
+====================================================================
+编写一键部署软件脚本
+
+1）依赖包
+源码安装Nginx需要提前安装依赖包软件gcc,openssl-devel,pcre-devel
+#将真机桌面的nginx-1.12.2.tar.gz上传到虚拟机sever
+[root@room12pc2 桌面]# scp -r nginx-1.12.2.tar.gz root@172.25.0.11:/root
+
+[root@server0 sbin]# vim /ngin.sh
+#/bin/bash
+yum -y install gcc openssl-devel pcre-devel
+tar -xf /root/nginx-1.12.2.tar.gz
+cd nginx-1.12.2
+./configure
+make
+make install
+[root@server0 sbin]# chmod +x /ngin.sh
+[root@server0 sbin]# netstat -ntulp | grep nginx
+
+2）确认安装效果
+Nginx默认安装路径为/usr/local/nginx,该目录下会提供4个子目录，分别如下：
+/usr/local/nginx/conf	配置文件目录
+/usr/local/nginx/html	网站页面目录
+/usr/local/nginx/logs	Nginx日志目录
+/usr/local/nginx/sbin	主程序目录
+主程序命令参数：
+[root@svr5 ~]# /usr/local/nginx/sbin/nginx              #启动服务,首先没其它服务使用80端口为前提
+[root@svr5 ~]# /usr/local/nginx/sbin/nginx    -s stop   #关闭服务
+[root@svr5 ~]# /usr/local/nginx/sbin/nginx    -V        #查看软件信息
+[root@server0 sbin]# netstat -ntulp | grep -q nginx     #查看服务状态,-q是在屏幕不回显
+
+启动脚本
+脚本通过位置变量$1读取用户的操作指令，判断是start、stop、restart还是status。
+netstat命令可以查看系统中启动的端口信息，该命令常用选项如下：
+-n以数字格式显示端口号
+-t显示TCP连接的端口
+-u显示UDP连接的端口
+-l显示服务正在监听的端口信息，如httpd启动后，会一直监听80端口
+-p显示监听端口的服务名称是什么（也就是程序名称）
+例:
+[root@server0 ~]# vim /case.sh
+#!/bin/bash
+case $1 in
+start)
+   /usr/local/nginx/sbin/nginx ;;
+stop)
+   /usr/local/nginx/sbin/nginx    -s stop ;;
+restart)
+   /usr/local/nginx/sbin/nginx    -s stop
+   /usr/local/nginx/sbin/nginx ;;
+status)
+   netstat -ntulp | grep -q nginx
+   [ $? -eq 0 ] && echo "服务启动" || echo "服务未启动" ;;
+*)
+echo "start|stop|restart|status" ;;
+esac
+
+====================================================================
+使用Shell函数
+
+在Shell脚本中，将一些需重复使用的操作，定义为公共的语句块，即可称为函数。通过使用函数，可以使脚本代码更加简洁，
+增强易读性，提高Shell脚本的执行效率
+1）函数的定义方法
+
+格式1：
+function  函数名 {
+    命令序列
+    .. ..
+}
+例:
+[root@server0 ~]# vim /b.sh
+#!/bin/bash
+function b {  #b是函数名,自定义
+   echo 654
+}
+b #调用函数
+[root@server0 ~]#chmod +x /b.sh
+
+格式2：
+函数名() {
+    命令序列
+    .. ..
+}
+例:
+[root@server0 ~]# vim /a.sh
+a(){  #a是函数名,自定义
+echo 123
+echo rewr
+}
+a #调用函数
+[root@server0 ~]#chmod +x /a.sh
+
+3X为字体颜色，4X为背景颜色。
+格式: -e \033[数字m文本\033[0m
+例:
+[root@server0 ~]# echo -e "\033[32mzhaiy\033[0m"
+zhaiy
+
+格式: echo -e "\033[字背景颜色;字体颜色m字符串\033[0m" 
+例如: 
+echo -e "\033[41;36m something here \033[0m" 
+其中41的位置代表底色, 36的位置是代表字的颜色 
+那些ascii code 是对颜色调用的始末. 
+\033[ ; m …… \033[0m 
+
+字背景颜色范围:40----49 
+40:黑 
+41:深红 
+42:绿 
+43:黄色 
+44:蓝色 
+45:紫色 
+46:深绿 
+47:白色 
+字颜色:30-----------39 
+30:黑 
+31:红 
+32:绿 
+33:黄 
+34:蓝色 
+35:紫色 
+36:深绿 
+37:白色 
+===============================================ANSI控制码的说明 
+\33[0m 关闭所有属性 
+\33[1m 设置高亮度 
+\33[4m 下划线 
+\33[5m 闪烁 
+\33[7m 反显 
+\33[8m 消隐 
+\33[30m -- \33[37m 设置前景色 
+\33[40m -- \33[47m 设置背景色 
+\33[nA 光标上移n行 
+\33[nB 光标下移n行 
+\33[nC 光标右移n行 
+\33[nD 光标左移n行 
+\33[y;xH设置光标位置 
+\33[2J 清屏 
+\33[K 清除从光标到行尾的内容 
+\33[s 保存光标位置 
+\33[u 恢复光标位置 
+\33[?25l 隐藏光标 
+\33[?25h 显示光标
+--------------------- 
+作者：JoinChao 
+来源：CSDN 
+原文：https://blog.csdn.net/qq_35964941/article/details/70226181 
+版权声明：本文为博主原创文章，转载请附上博文链接！
+
+Shell脚本的fork炸弹: 会导致机器死机
+[root@svr5 ~]# vim test.sh
+#!/bin/bash
+.(){
+.|.&
+}
+.
+或
+[root@svr5 ~]# vim test.sh
+#!/bin/bash
+a(){
+a|a&
+}
+a
+chmod +x /test.sh
+
+==============================================================
+中断及退出
+
+通过break、continue、exit在Shell脚本中实现中断与退出的功能
+
+exit 结束整个脚本
+break 可以结束整个循环
+continue 结束本次循环,进行下一次循环
+
+break 可以结束整个循环
+例:
+[root@server0 ~]# vim /he.sh
+#!/bin/bash
+n=0
+while :
+do
+    read -p "请输入一个数字(0是结束):" s
+    [ $s -eq 0 ] && break  
+    let n+=s
+done
+echo "总和是$n"
+[root@server0 ~]# chmod +x /he.sh
+
+continue 结束本次循环,进行下一次循环
+例:
+#!/bin/bash
+n=0
+for i in {1..20}
+do
+     n=$[i%6]
+     [ $n -ne 0 ] && continue
+     echo $[i*i] 
+done
+[root@server0 ~]# chmod +x /test.sh
+
+====================================================================
+字符串截取及切割
+
+子串截取的用法：
+${变量名:起始位置:长度}
+
+子串替换的两种用法：
+     只替换第一个匹配结果：${变量名/old/new}
+     替换全部匹配结果：${变量名//old/new}
+
+
+字符串掐头去尾：
+   从左向右，最短匹配删除：${变量名#*关键词}
+   从左向右，最长匹配删除：${变量名##*关键词}
+   从右向左，最短匹配删除：${变量名%关键词*}
+   从右向左，最长匹配删除：${变量名%%关键词*}
+
+字符串的截取
+1）使用 ${}表达式
+   格式：${变量名:起始位置:长度}
+   使用${}方式截取字符串时，起始位置是从0开始的。
+例:
+[root@server0 ~]# zyq=zhaiyanquan
+[root@server0 ~]# echo ${zyq:0:4} #0是截取位置,4是截取长度
+zhai
+[root@server0 ~]# echo ${zyq:1:4}
+haiy
+[root@server0 ~]# echo ${#zyq} #确认其字符串长度
+11
+
+一个随机密码(8位)
+例:
+[root@server0 ~]# vim /test.sh
+#!/bin/bash
+x=qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890
+for i in {1..8}
+do
+n=$[RANDOM%62]
+pass=${x:n:1}
+pass1=$pass1$pass
+done
+echo $pass1
+[root@server0 ~]# chmod +x /test.sh
+
+==================================================================
+字符串的替换
+
+1）只替换第1个子串
+格式：${变量名/old/new}
+例:
+[root@server0 ~]# zyq=abcabc
+[root@server0 ~]# echo ${zyq/a/m}
+mbcabc
+
+2）替换全部子串
+格式：${变量名//old/new}
+将phone字符串中的所有8都替换为X:
+例:
+[root@server0 ~]# zyq=abcabc
+[root@server0 ~]# echo ${zyq//b/n}
+ancanc
+
+==================================================================
+字符串的匹配删除
+
+1）从左向右，最短匹配删除
+格式：${变量名#*关键词}
+删除从左侧第1个字符到最近的关键词“：”的部分，* 作通配符理解：
+例:
+[root@server0 ~]# a=$(head -1 /etc/passwd)
+[root@server0 ~]# echo $a
+root:x:0:0:root:/root:/bin/bash
+[root@server0 ~]# echo ${a#*:} #删除第一个冒号前的字符串
+x:0:0:root:/root:/bin/bash
+
+2）从左向右，最长匹配删除
+格式：${变量名##*关键词}
+删除从左侧第1个字符到最远的关键词“:”的部分：
+例:
+[root@server0 ~]# a=$(head -1 /etc/passwd)
+[root@server0 ~]# echo $a
+root:x:0:0:root:/root:/bin/bash
+[root@server0 ~]#  echo ${a#root} #从左往右删除第一个root
+:x:0:0:root:/root:/bin/bash
+[root@server0 ~]#  echo ${a#*:}   #从左往右删除第一个冒号,以及冒号左边所有
+x:0:0:root:/root:/bin/bash
+[root@server0 ~]# echo ${a##*:}   #从左往右删除最后一个冒号,以及冒号左边所有
+/bin/bash
+
+3）从右向左，最短匹配删除
+格式：${变量名%关键词*}
+删除从右侧最后1个字符到往左最近的关键词“:”的部分，* 做通配符理解：
+例:
+[root@server0 ~]# a=$(head -1 /etc/passwd)
+[root@server0 ~]# echo $a
+root:x:0:0:root:/root:/bin/bash
+[root@server0 ~]#  echo ${a%root} #从右往左删除第一个root
+root:x:0:0:root:/root:/bin/bash
+[root@server0 ~]#  echo ${a%:*}   #从右往左删除第一个冒号,以及冒号左边所有
+root:x:0:0:root:/root
+[root@server0 ~]# echo ${a%%:*}   #从右往左删除最后一个冒号,以及冒号右边所有
+root
+
+=====================================================================
+批量修改文件扩展名的脚本
+
+例:
+[root@server0 ~]# cd /zhai
+[root@server0 zhai]# touch {1..10}.txt
+[root@server0 ~]# vim /doc.sh
+#!/bin/bash
+for i in $(ls /zhai/*.txt)
+do
+     m=${i%.*}
+     mv $i $m.doc
+done
+改进版脚本(批量修改扩展名)
+[root@svr5 rendir]# vim /doc.sh
+#!/bin/bash
+#version:2
+for i in `ls *.$1`
+do
+    mv $i  ${i%.*}.$2
+done
+
+=======================================================================
+字符串初值的处理
+    通过${var:-word}判断变量是否存在，决定变量的初始值
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

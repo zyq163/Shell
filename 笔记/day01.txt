@@ -1,0 +1,302 @@
+Shell环境及特性
+
+什么是Shell
+  Shell是在Linux内核与用户之间的解释器程序，通常指的是bash，负责向内核翻译及传达用户/程序指令
+ 
+shell的使用方式：
+  1.交互执行指令：人工干预，执行效率底。
+  2.非交互执行指令：安静地在后台执行，执行效率高，方便写脚本。
+  若需要临时使用另一种Shell环境，可以直接执行对应的Shell解释器程序，比如只要执行ksh可以切换到ksh命令行环境。
+
+常见的Shell环境
+    通过usermod chsh更改登录shell
+    手动执行目标shell程序
+[root@server0 ~]# cat /etc/shells      
+/bin/sh           #多数Unix默认的Shell
+/bin/bash         #多数Linux默认使用的Shell
+/sbin/nologin     #非登录
+/usr/bin/sh
+/usr/bin/bash
+/usr/sbin/nologin
+/bin/tcsh
+/bin/csh
+/bin/ksh
+
+/bin/bash优势: 快捷键 历史记录 tab键 重定向 管道 别名
+
+更改登录用户的解释器程序
+[root@server0 ~]# useradd zhangsan
+[root@server0 ~]# grep 'zhangsan' /etc/passwd
+zhangsan:x:1003:1003::/home/zhangsan:/bin/bash
+[root@server0 ~]# usermod -s /bin/ksh zhangsan  #修改用户解释器
+[root@server0 ~]# grep 'zhangsan' /etc/passwd
+zhangsan:x:1003:1003::/home/zhangsan:/bin/ksh
+
+什么是Shell脚本
+   提前写好可执行语句,能够完成特定任务的文件
+   顺序 批量化的处理
+   解析型程序
+
+规范的脚本构成
+  #!脚本环境声明
+  #注释信息
+  可执行的语句
+
+shell脚本编写的三个步骤
+1.声明所用解释器
+2.写脚本功能描述,变量含义,使用位置,作者等信息
+3.编写执行的命令
+
+[root@server0 ~]# vim /etc/profile 
+HISTSIZE=200 
+[root@server0 ~]# cat .bash_history #历史记录文件
+
+=================================================================
+脚本执行方法
+1.添加x权限
+例:
+[root@server0 ~]# chmod +x /opt/2.sh
+2.使用解释器直接执行脚本
+例:
+[root@server0 ~]# bash /opt/1.sh
+3.使用source直接执行脚本,新开启解释器
+例:
+[root@server0 ~]# source /opt/1.sh   #执行完成后退出当前解释器(脚本里包含exit)
+
+例:
+[root@server0 zhai]# vim /opt/1.sh
+#!/bin/bash
+echo "zhaiyanquan hello"
+#sleep 1000
+mkdir zhai
+cd zhai
+[root@server0 ~]# source /opt/1.sh  #使用source执行脚本直接进入目录zhai下
+zhaiyanquan hello
+[root@server0 zhai]# 
+或
+[root@server0 ~]# bash /opt/1.sh  #使用bash执行脚本创建zhai目录,但是不能进入zhai目录.
+zhaiyanquan hello
+
+=================================================================
+Shell变量
+
+什么是变量:
+   以固定名称存储,可能会变化的值
+   提高脚本对任务需求 运行环境变化的适应能力
+   方便在脚本中重复使用
+
+变量的名=变量的值
+
+变量：
+1.自定义变量，使用大小写字母，数字，下划线，不能以数字开头，不能使用特殊符号
+2.系统变量，包含环境变量，预定义变量，位置变量，大部分是系统已经定义好的，直接使用
+
+环境变量: PWD当前位置  USER当前用户名  HOSTNAME主机名  SHELL当前用户的解释器  HOME当前用户的家目录  
+UID当前用户的UID号  PATH系统命令所在地  PS1一级提示符  PS2二级提示符
+例：查看当前位置使用  echo $PWD
+例:
+[root@server0 ~]# echo $PS1
+[\u@\h \W]\$
+[root@server0 ~]# echo $PS2
+>
+
+修改PS1一级提示符
+[root@desktop0 ~]# PS1='#####'
+#####
+#####PS1='[\u@\h \W]\$'
+
+修改 PS2二级提示符
+[root@desktop0 ~]# PS2='=====>>'
+[root@desktop0 ~]# ls \
+=====>>
+
+[root@desktop0 ~]# a=100
+[root@desktop0 ~]# echo ${a}b
+100b
+
+查看所有环境变量
+[root@server0 ~]# env 
+
+查看所有变量
+[root@server0 ~]# set
+
+取消变量
+[root@server0 ~]# a=100
+[root@server0 ~]# echo $a
+100
+[root@server0 ~]# unset a  #取消变量a
+[root@server0 ~]# echo $a
+
+预定义变量: 用来保存脚本执行的信息
+注意: 直接使用这些变量 不能直接为这些变量赋值
+$* 显示所有位置变量的值
+$0 显示当前所在的进程或脚本名
+$# 统计位置变量的个数
+$$ 当前程序的进程号
+$? 上一条指令的执行结果，0是正确，非0是异常
+例:
+[root@server0 ~]# echo $$
+2307
+
+位置变量: $1 $2 $3 $4 等等
+
+三种引号对变量赋值的影响
+' ' 单引号: 界定一个完整的字符串,并且可以实现屏蔽特殊符号的功能
+例:
+[root@server0 ~]# a=200
+[root@server0 ~]# echo '$a' #取消$符号功能
+$a
+"" 双引号: 界定一个完整的字符串
+例:
+[root@server0 ~]# mkdir "c d"
+[root@server0 ~]# ls -ld "c d"
+drwxr-xr-x. 2 root root 6 5月   8 16:12 c d
+反撇号``或$():  使用反撇号或$()时，可以将命令执行的标准输出作为字符串存储，因此称为命令替换
+例:
+[root@server0 ~]# a=$(ls)
+[root@server0 ~]# echo $a
+
+read命令从键盘读取变量值
+例:
+[root@svr5 ~]# read -p "请输入一个整数：" i
+请输入一个整数：240
+[root@svr5 ~]# echo $i
+240
+
+stty终端显示控制
+将回显功能关闭（stty -echo）
+将回显功能恢复（stty echo）
+例:
+[root@server0 ~]# vim /opt/user.sh
+#!/bin/bash
+read -p "请输入用户名:" u
+useradd $u
+stty -echo   #使输入密码时不显示
+read -p "请输入密码:" p
+stty echo    #将回显功能恢复
+echo $p | passwd --stdin $u
+
+从键盘录入信息时，不在屏幕显示
+read -s -p "dsfsdaf:" n
+
+[root@server0 ~]# cat /etc/shadow  #查看用户密文
+
+export发布全局变量
+例:
+[root@server0 ~]# export zyq=1000 #在所有解释器都可以用
+[root@server0 ~]# bash
+[root@server0 ~]# echo $zyq
+1000
+[root@server0 ~]# bash
+[root@server0 ~]# echo $zyq
+1000
+[root@server0 ~]# ksh
+# echo $zyq
+1000
+#  
+
+=======================================================
+Shell中的数值运算
+
+整数运算工具
+1)使用expr命令
+例:
+[root@server0 ~]# a=10           #定义变量a
+[root@server0 ~]# expr $a + 10   #加法
+20
+[root@server0 ~]# expr $a - 1    #减法
+9
+[root@server0 ~]# expr $a \* 10  #乘法，操作符应添加\转义
+100
+[root@server0 ~]# expr $a / 3    #除法，仅保留整除结果
+3
+[root@server0 ~]# expr $a % 6    #求模
+4
+
+2)使用$[]或$(())表达式
+例:
+[root@server0 ~]# a=10
+[root@server0 ~]# echo $[a+10]
+20
+[root@server0 ~]# echo $((a+10))
+20
+[root@server0 ~]# echo $[a-10]
+0
+[root@server0 ~]# a=10
+[root@server0 ~]# echo $((a-1))
+9
+[root@server0 ~]# echo $[a*10]
+100
+[root@server0 ~]# echo $((a*10))
+100
+[root@server0 ~]# echo $((a/3))
+3
+[root@server0 ~]# echo $[a/3]
+3
+[root@server0 ~]# echo $((a%3))
+1
+[root@server0 ~]# echo $[a%3]
+1
+
+3)使用let命令
+例:
+[root@server0 ~]# a=10
+[root@server0 ~]# let a+=10   #a=a+10
+[root@server0 ~]# echo $a
+20
+[root@server0 ~]# let a-=10   #a=a-10
+[root@server0 ~]# echo $a
+10
+[root@server0 ~]# let a*=10   #a=a*10
+[root@server0 ~]# echo $a 
+100
+[root@server0 ~]# let a/=2    #a=a/2
+[root@server0 ~]# echo $a
+50
+[root@server0 ~]# let a%=4    #a=a%4
+[root@server0 ~]# echo $a
+2
+
+小数运算工具
+1）bc交互式运算
+例:
+[root@server0 ~]# bc
+10-2.2
+7.8
+11.6+3.5
+15.1
+2.2*10
+22.0
+10/3
+3
+scale=3  #scale定义小数点的长度
+10/3
+3.333
+
+2）bc非交互式运算
+例:
+[root@server0 ~]# echo '10.2+89' | bc
+99.2
+[root@server0 ~]# echo 'scale=3; 10/3' | bc
+3.333
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

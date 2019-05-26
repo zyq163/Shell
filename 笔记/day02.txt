@@ -1,0 +1,323 @@
+条件测试操作
+  字符串匹配
+  比较整数值的大小
+  识别文件/目录的状态
+  多个条件/操作的逻辑组合
+
+test语法格式
+“test 表达式”或者[ 表达式 ]都可以，表达式两边至少要留一个空格。
+1)== 比较两个字符串是否相同
+例:
+[root@server0 ~]# test fds == sdf 
+[root@server0 ~]# echo $?
+1
+或
+[root@server0 ~]# [ fds == sdf ]
+[root@server0 ~]# echo $?
+1
+
+2）!= 比较两个字符串是否不相同
+[root@server0 ~]# [ $UID != "0" ]
+[root@server0 ~]# echo $?
+1
+或
+[root@server0 ~]# su - student
+[student@server0 ~]$ [ $UID != "0" ]
+[student@server0 ~]$ echo $?
+0
+
+3）一行执行多条命令的情况
+&& 前面命令成功后才执行后面命令（和）
+例:
+[root@server0 ~]# [ zhai == zhai ] && ls
+anaconda-ks.cfg  Documents  Music     Public     Videos
+Desktop          Downloads  Pictures  Templates
+||　前面命令失败后才执行后面命令（或）
+例:
+[root@server0 ~]# [ zhai != zhai ] || ls
+anaconda-ks.cfg  Documents  Music     Public     Videos
+Desktop          Downloads  Pictures  Templates
+;　前面命令执行后再执行后面命令，无逻辑关系
+例：
+[root@server0 ~]# [ zhai != zhai ] ; ls
+anaconda-ks.cfg  Documents  Music     Public     Videos
+Desktop          Downloads  Pictures  Templates
+
+[root@server0 ~]# [ zhai == zhai ] && echo "ok" || echo "no"
+ok
+[root@server0 ~]# [ zhai != zhai ] && echo "ok" || echo "no"
+no
+[root@server0 ~]# [ zhai != zhai ] || echo "ok" || echo "no"
+ok
+[root@server0 ~]# [ zhai != zhai ] || echo "ok" 
+ok
+
+4) -z 检查变量的值是否未设置（判断变量是否为空值）
+例：
+[root@server0 ~]# [ -z b ]　　＃ｂ是空值
+[root@server0 ~]# echo $?
+1
+[root@server0 ~]# [ ! -z b ]  #!是取反
+[root@server0 ~]# echo $?
+0
+
+==============================================================
+整数值比较
+参与比较的必须是整数（可以调用变量），比较非整数值时会出错
+
+-eq 等于 (比较两个数是否相等)
+-gt 大于 (比较前面的整数是否大于后面的整数)
+-ge 大于等于 (比较前面的整数是否大于或等于后面的整数)
+-ne 不等于 (比较两个数是否不相等)
+-lt 小于 (比较前面的整数是否小于后面的整数)
+-le 小于等于 (比较前面的整数是否小于或等于后面的整数)
+例:
+[root@server0 ~]# [ $a -eq 10 ]
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ $a -gt 8 ]
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ $a -ge 8 ]
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ $a -lt 20 ]
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ $a -le 10 ]
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ $a -ne 30 ]
+[root@server0 ~]# echo $?
+0
+
+提取当前登录的用户数，比较是否大于等于3
+例:
+[root@server0 ~]# who | wc -l
+
+每2分钟向root用户发送邮件当前人数登录信息
+例:
+[root@server0 ~]# crontab -e -u root  #或 [root@server0 ~]# crontab -e
+*/2 * * * * chmod +x /opt/zhai.sh  #给脚本添加x权限
+*/2 * * * * /opt/zhai.sh
+[root@server0 ~]# vim /opt/zhai.sh
+#!/bin/bash
+n=$(who | wc -l)
+[ $n -ge 3 ] &&  echo "现在有$n人登录系统" | mail -s "zhai"  root
+[root@server0 ~]# mail -u root #查看邮件
+
+====================================================================
+识别文件与目录的状态
+
+1）-e 判断对象是否存在（不管是目录还是文件）
+例:
+[root@server0 ~]# [ -e zhai ] #文档存在时
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ -e zha ]  #文档不存在时
+[root@server0 ~]# echo $?
+1
+
+2）-d 判断对象是否为目录（存在且是目录）
+例:
+[root@server0 ~]# [ -d zhai ] #目录存在时
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ -d zha ]  #目录不存在时
+[root@server0 ~]# echo $?
+1
+
+3)-f 判断对象是否为文件（存在且是文件）
+例:
+[root@server0 ~]# [ -f /yan.txt ]  #文件存在时
+[root@server0 ~]# echo $?
+0
+[root@server0 ~]# [ -f /ya.txt ]  #文件不存在时
+[root@server0 ~]# echo $?
+1
+
+[root@server0 ~]# ls -ld /quan.txt
+-rw-r--r--. 1 root root 4 5月   9 14:25 /quan.txt
+
+4）-r 判断对象是否可读
+此测试对root用户无效，无论文件是否设置r权限，root都可读：
+例:
+[root@server0 ~]# [ -r /quan.txt ]
+[root@server0 ~]# echo $?
+0
+
+5）-w 判断对象是否可写
+此测试同样对root用户无效，无论文件是否设置w权限，root都可写：
+例:
+[root@server0 ~]# [ -w /quan.txt ]
+[root@server0 ~]# echo $?
+0
+
+6）-x 判断对象是否具有可执行权限
+这个取决于文件本身、文件系统级的控制，root或普通用户都适用：
+例:
+[root@server0 ~]# [ -x /quan.txt ]
+[root@server0 ~]# echo $?
+1
+
+文件没有任何权限,root用户一样可以对文件读写,但不能执行,其它用户没有任何读写执行操作
+[root@server0 ~]# ls -ld /quan.txt
+----------. 1 root root 4 5月   9 14:25 /quan.txt
+[root@server0 ~]# echo 5634 >> /quan.txt
+[root@server0 ~]# cat /quan.txt
+123
+5634
+
+====================================================================
+多个条件与操作的逻辑组合
+
+1）&&，逻辑与
+给定条件必须都成立，整个测试结果才为真。
+检查变量X的值是否大于10，且小于30：
+例:
+[root@svr5 ~]# X=20                      //设置X变量的值为20
+[root@svr5 ~]# [ $X -gt 10 ] && [ $X -lt 30 ] && echo "YES"
+YES
+
+2）||，逻辑或
+只要其中一个条件成立，则整个测试结果为真。
+只要/tmp/、/var/spool/目录中有一个可写，则条件成立：
+[root@svr5 ~]# [ -w "/tmp/" ] || [ -w "/var/spool/" ] && echo "OK"
+OK
+
+if单分支的语法组成：
+if  条件测试 ;then  
+命令序列
+fi
+例:
+if [ ! -f zhai.txt ];then
+    touch zhai.txt
+fi 
+
+if双分支的语法组成：
+if  条件测试 ;then
+命令序列1
+else  
+命令序列2
+fi
+ping -c 限定次数 -i 限定ping间隔时间 -W 等待反馈时间 172.25.0.100
+例:
+[root@server0 ~]# vim /opt/ping.sh
+#!/bin/bash
+read -p "请输入IP地址:" p
+ping -c 4 -i 0.2 -W 1 $p &> /dev/null
+if [ $? -eq 0 ];then
+    echo "可以通信"
+else
+    echo "不可以通信"
+fi
+[root@server0 ~]# chmod +x /opt/ping.sh
+
+if多分支的语法组成：
+if   条件测试1 ;then  
+命令序列1
+elif  条件测试2 ;then  
+命令序列2
+else
+命令序列n
+fi
+
+例:
+[root@server0 ~]# vim /random.sh
+#!/bin/bash
+n=$[RANDOM%11]
+read -p "请输入数字(0-10):" s
+if [ $n -eq $s ];then
+     echo "你猜对了!"
+elif [ $n -lt $s ];then
+     echo "你猜大了!"
+else
+     echo "你猜小了!"
+fi
+echo $n
+[root@server0 ~]# chmod +x /random.sh
+
+===========================================================
+使用for循环结构
+for  变量名  in  值列表
+do
+    命令序列
+done
+例:
+[root@server0 ~]# chmod +x /for.sh
+#!/bin/bash
+for i in {1..12}
+do
+      ping -c 2 -i 0.2 -W 1 172.25.0.$i &> /dev/null
+      if [ $? -eq 0 ];then
+          echo "172.25.0.$i ok" 
+      else
+          echo "172.25.0.$i no" 
+      fi
+done
+[root@server0 ~]# chmod +x /for.sh
+
+=============================================================
+使用while循环结构
+while  条件测试
+do
+    命令序列
+done
+例:
+有效循环脚本：
+例:
+[root@svr5 ~]# vim while02.sh
+#!/bin/bash
+i=1
+while [ $i -le 5 ]
+do
+        echo "$i"
+        let i++
+done
+[root@svr5 ~]# chmod +x while02.sh
+[root@svr5 ~]# ./while02.sh
+
+无心的死循环脚本：
+例:
+[root@svr5 ~]# vim while01.sh
+#!/bin/bash
+i=1
+while [ $i -le 5 ]
+do
+        echo "$i"
+done
+[root@svr5 ~]# chmod +x while01.sh
+[root@svr5 ~]# ./while01.sh          #死循环，需要使用Ctrl+C终止脚本
+
+死循环的一般格式
+[root@server0 ~]# vim /while2.sh
+#!/bin/bash
+n=$[RANDOM%101]
+x=0
+while :
+do
+    read -p "请输入数字(0-100):" s
+    let x++
+    if [ $n -eq $s ];then
+        echo "你猜对了"
+        echo " 你猜对了 总猜${x}次  中奖码:${n}"
+        exit
+    elif [ $s -gt $n ];then
+          echo "你猜大了"
+    else
+          echo "你猜小了"
+    fi
+done
+[root@server0 ~]# chmod +x /while2.sh
+
+
+
+
+
+
+
+
+
+
+
+
