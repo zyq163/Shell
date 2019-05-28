@@ -1,0 +1,24 @@
+#!/bin/bash
+#1.能只设置ipv4的ip地址
+#2.能同时设置ipv4的ip地址和网关
+#version:1.1
+#author:zhaiyanquan
+#date:2019-5-28
+
+read  -p  'Network name(eth0/eth1/eth2/eth3):' name
+read  -p  'Set IP(IP/24):' ip
+read  -p  'Set Gateway(default none):' gw
+
+if [ -z $name ] || [ -z $ip ];then
+   echo -e "\033[031mPlease enter parameters\033[0m" 
+   exit 1
+elif [ -z $gw ];then
+       #设置ip地址和网关
+      nmcli connection modify $name ipv4.method manual ipv4.addresses $ip  connection.autoconnect yes &> /dev/null
+      nmcli connection up $name 
+else  
+       #只设置ip地址
+      nmcli connection modify $name ipv4.method manual ipv4.addresses $ip ipv4.gateway $gw  connection.autoconnect yes &> /dev/null
+      nmcli connection up $name
+fi    
+
