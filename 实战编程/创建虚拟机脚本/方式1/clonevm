@@ -1,0 +1,92 @@
+#!/bin/bash
+#version:1.1
+#author:zhaiyanquan
+#date:2019-5-30
+
+. /etc/clone.conf
+
+function clone {
+
+if [ "$name" == "" ];then
+      BASEVM=node_tedu
+else
+      BASEVM=node_base
+      echo -e "The basic template you use \e[32;1m[OK]\e[0m"
+fi
+
+IMG_DIR=/var/lib/libvirt/images
+
+#read -p "Enter VM number: "   VMNUM
+
+if [ -z $VMNUM  ];then
+     echo    Please enter parameters
+     exit
+fi
+
+if [ -z "${VMNUM}" ]; then
+     echo "You must input a number."
+     exit 65
+elif [ $(echo ${VMNUM}*1 | bc) = 0 ]; then
+     echo "You must input a number."
+     exit 66
+elif [ ${VMNUM} -lt 1 -o ${VMNUM} -gt 100000 ]; then
+     echo "Input out of range"
+     exit 67
+fi
+if [ $VMNUM -le 9 ];then
+    VMNUM=0$VMNUM
+fi
+
+if [ -z $name ];then
+      NEWVM=clone-vm7_${VMNUM}
+else
+      NEWVM=${name} 
+fi
+
+if [ -e $IMG_DIR/${NEWVM}.img ]; then
+     echo "File exists."
+     1 &> /dev/null
+     let vm+=1
+      #exit 89
+     continue  #如果虚拟机已存在,跳过本次循环.
+fi
+
+echo -en "Creating Virtual Machine disk image......\t"
+qemu-img create -f qcow2 -b $IMG_DIR/.${BASEVM}.qcow2 $IMG_DIR/${NEWVM}.img 20G &> /dev/null
+echo -e "\e[32;1m[OK]\e[0m"
+if [ "$name" == "" ];then
+      cat /var/lib/libvirt/images/.node_tedu.xml > /tmp/myvm.xml
+else
+      cat /var/lib/libvirt/images/.node_base.xml > /tmp/myvm.xml
+fi
+sed -i "/<name>${BASEVM}/s/${BASEVM}/${NEWVM}/" /tmp/myvm.xml
+sed -i "/${BASEVM}\.img/s/${BASEVM}/${NEWVM}/" /tmp/myvm.xml
+
+echo -en "Defining new virtual machine......\t\t"
+sudo virsh define /tmp/myvm.xml &> /dev/null
+rm -rf /tmp/myvm.xml
+echo -e "\e[32;1m[OK]\e[0m"
+
+}
+
+read -p "你需要虚拟机数量是(数字):" vm
+read -p "设置主机名和ip地址(yes/no):" s
+
+n=1
+
+
+while [ $n -le $vm ]
+do
+     VMNUM=$n
+     let n+=1
+     if [ "$s" == yes ];then
+           read -p "虚拟机名称:" name
+           clone #创建虚拟机函数
+     else
+           clone #创建虚拟机函数
+     fi
+done
+
+
+
+

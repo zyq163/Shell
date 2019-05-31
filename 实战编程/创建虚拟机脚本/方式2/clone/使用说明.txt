@@ -1,0 +1,6 @@
+1.将文件夹clone复制到/目录下,比如: /clone
+2.运行脚本: bash /clone/clone.sh 
+或
+chmod +x /clone/clone.sh
+/clone/clone.sh
+
