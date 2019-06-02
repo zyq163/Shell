@@ -1,24 +1,125 @@
 #!/bin/bash
 #1.能只设置ipv4的ip地址
 #2.能同时设置ipv4的ip地址和网关
-#version:1.1
+#3.能自动获取网卡名称
+#4.网卡ip地址存在，则能单独配置网关
+#5.能配置ipv6
+#version:1.2
 #author:zhaiyanquan
-#date:2019-5-28
+#date:2019-5-28 
 
-read  -p  'Network name(eth0/eth1/eth2/eth3):' name
-read  -p  'Set IP(IP/24):' ip
-read  -p  'Set Gateway(default none):' gw
+#自动获取网卡名称
+n=$(ifconfig | awk -F: '{print $1}' | grep -v "\s" | egrep "." | sed -n "1,8p") #获取网卡名称
+#将所有网卡名称整成字符串
+for i in $n
+do
+      g=${g}'|'$i
+done
 
-if [ -z $name ] || [ -z $ip ];then
-   echo -e "\033[031mPlease enter parameters\033[0m" 
-   exit 1
-elif [ -z $gw ];then
-       #设置ip地址和网关
-      nmcli connection modify $name ipv4.method manual ipv4.addresses $ip  connection.autoconnect yes &> /dev/null
-      nmcli connection up $name 
-else  
-       #只设置ip地址
-      nmcli connection modify $name ipv4.method manual ipv4.addresses $ip ipv4.gateway $gw  connection.autoconnect yes &> /dev/null
-      nmcli connection up $name
-fi    
+read -p "Internet IP(ipv4 or ipv6):" internet
+if [ -z $internet ];then  #判断internet为空
+    echo -e "\033[031mInternet Error\033[0m" #显示报错信息
+    exit 7
+fi
+
+judgeipv4(){
+   read  -p  "Network name($g):" name  #获取自己手动输入的网卡名字
+   if [ -z $name ];then #判断网卡名
+       echo -e "\033[031mThe network card is called empty\033[0m"
+       exit 2
+   fi
+
+   read  -p  'Set IP(IP/24):' ip       #获取自己手动输入IP地址
+
+   if [ -z $ip ];then
+       ip=$(ifconfig $name | sed -n "2p" | awk '{print $2}')
+       ip=${ip}/24
+       echo $ip
+   fi
+   pn=`echo ${ip} | awk -F [./] '{print $1,$2,$3,$4,$5}'` #过滤ip地址数字出来
+   p=$(echo ${ip} | awk -F "." '{print NF}')              #过滤ip地址点(.)数
+   m=`echo $ip | awk -F "/" '{print $2}'`                 #获取子网掩码位个数
+    
+   #判断ip地址要大于等于0，小于等于255
+   for n in $pn
+   do
+         if [ "$n" -ge 0 ] && [ "$n" -le 255 ];then
+              price=yes     
+         else
+              price=no
+              break  #退出for循环
+         fi
+   done
+}
+
+judgeipv6(){
+     read  -p  "Network name($g):" name6  #获取自己手动输入的网卡名字
+     if [ -z $name6 ];then #判断网卡名
+        echo -e "\033[031mThe network card is called empty\033[0m"
+        exit 2
+    fi
+    read  -p  'Set IP(IP/64):' ipv6  #获取自己手动输入IP地址
+    pn6=$(echo $ipv6 | awk -F "/" '{print $2}')
+    if [ "$pn6" !=  "64" ];then
+         echo -e "\033[031mNetwork Address Error\033[0m"
+         exit 18
+    fi
+}
+
+if [ $internet == ipv4 ];then
+      judgeipv4
+elif [ $internet == ipv6 ];then
+      judgeipv6
+else
+     echo -e "\033[031mInternet Error\033[0m" #显示报错信息
+     exit 8
+fi
+
+function networkipv4 {
+   if [ -z $name ] || [ -z $ip ];then
+         echo -e "\033[031mPlease enter parameters\033[0m" 
+         exit 1
+   elif [ -z $gw ];then
+         #设置ip地址和网关
+         nmcli connection modify $name ipv4.method manual ipv4.addresses $ip  connection.autoconnect yes &> /dev/null
+         nmcli connection up $name 
+         ifconfig ${name}
+   else  
+         #只设置ip地址
+         nmcli connection modify $name ipv4.method manual ipv4.addresses $ip ipv4.gateway $gw connection.autoconnect yes &> /dev/null
+         nmcli connection up $name
+         ifconfig ${name}
+   fi
+}
+
+function networkipv6 {
+   if [ -z $name6 ];then
+         echo -e "\033[031mPlease enter parameters\033[0m" 
+         exit 1
+   else
+         #设置ipv6地址
+         nmcli connection modify $name6 ipv6.method manual ipv6.addresses $ipv6 connection.autoconnect yes &> /dev/null
+         nmcli connection up $name6
+         ifconfig ${name6}
+   fi
+}
+
+configureipv4(){
+   if [ $p -eq 4 ] && [ $m -eq 24 ] && [ $price == yes ];then
+         echo "${name} ip地址是${ip}"
+         read  -p  'Set Gateway(default none):' gw #获取网关
+         networkipv4
+   else
+         echo -e "\033[031mNetwork Address Error\033[0m" #显示报错信息
+   fi
+}
+
+if [ $internet ==  ipv4 ];then
+       configureipv4
+elif [ $internet == ipv6 ];then
+       networkipv6 
+       echo $ipv6    
+else
+       echo 0
+fi
 
