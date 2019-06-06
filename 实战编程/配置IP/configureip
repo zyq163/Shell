@@ -16,10 +16,9 @@ do
       g=${g}'|'$i
 done
 
-read -p "Internet IP(ipv4 or ipv6):" internet
+read -p "Internet IP(ipv4 or ipv6)默认ipv4:" internet
 if [ -z $internet ];then  #判断internet为空
-    echo -e "\033[031mInternet Error\033[0m" #显示报错信息
-    exit 7
+      internet=ipv4
 fi
 
 judgeipv4(){
