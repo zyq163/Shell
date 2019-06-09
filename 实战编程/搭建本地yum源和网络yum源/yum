@@ -1,0 +1,67 @@
+#!/bin/bash
+#autor: zhaiyanquan
+#version： 1.0
+#date: 2019-6-7
+#
+
+read -p "请输入光盘全称：" io
+
+#将光盘拷贝到指定路径下，同时创建挂载点。
+function IdentifyIso {
+   #光盘名称是否为空
+   if [ -z "$iso" ];then
+         echo -e "\033[031mThe disc name is empty\033[0m"
+         exit 1 #退出脚本
+   else
+         #获取本地的光盘名称或U盘的光盘名称，用于判断输入光盘名称是否一致
+         localiso=$(find / -name $iso | sed -n "1p" | awk -F/ '{print $NF}')
+   fi
+
+   ziso=$(echo $iso | egrep "\.iso") #过滤光盘扩展名是否包含".iso"
+
+   if [ "$iso" ==  "$localiso" ] && [ ! -z $ziso ];then
+         mkdir -p /var/ftp/iso7                 #创建挂载点
+         mkdir -p /var/lib/libvirt/images/iso7  #光盘存储目录
+         IsoPath=$(find / -name $iso | sed -n "1p") 
+         echo "你的光盘路径为$IsoPath"
+         cp -r ${IsoPath} /var/lib/libvirt/images/iso7
+         echo "/var/ftp/iso"
+       
+   else
+         echo -e "\033[031mIso does not exist\033[0m"
+         exit 2
+   fi
+}
+
+BootMount(){
+    line=$(wc -l /etc/fstab | awk '{print $1}') #获取行数
+    echo $line
+    write="/var/lib/libvirt/images/iso7/${iso} /var/ftp/iso7 iso9660 defaults 0 0"
+    sed  -i "${line}a${write}" /etc/fstab    
+    mount -a
+}
+
+LocalYum()
+{
+
+#搭建本地yum
+echo "[localyum]
+name=localyum
+baseurl=file:///var/ftp/iso7
+enabled=1
+gpgcheck=0" > /etc/yum.repos.d/zhai.repo
+
+yum clean all
+yum repolist
+yum -y install vsftpd
+systemctl restart vsftpd
+systemctl enable vsftpd  &> /dev/null
+systemctl status vsftpd
+echo -e "\033[032m本地yum源为file:///var/ftp/iso7\033[0m"
+echo -e "\033[032m本地yum源为ftp://192.168.4.254/iso7\033[0m"
+}
+
+IdentifyIso
+BootMount
+LocalYum
+
