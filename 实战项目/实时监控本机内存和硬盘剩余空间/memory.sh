@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#Author: zhaiyanquan
 #提取根分区剩余容量
 disk_size=$(df | awk '/\/$/{print $4}') #或 disk_size=$(df / | tail -1 | awk '{print $4}')
 
